@@ -107,110 +107,6 @@ def convert_tx2gene( fasta_filename, file_type, params ):
     #assert sort_method in SORTING_METHODS, ValueError( "%s is not a valid sorting option." % sort_method )
     #return SORTING_METHODS[ sort_method ]( fasta_filename, params )
     
-
-#def _move_and_index_fasta_for_sorting( fasta_filename ):
-#    unsorted_filename = tempfile.NamedTemporaryFile().name
-#    shutil.move( fasta_filename, unsorted_filename )
-#    fasta_offsets = {}
-#    unsorted_fh = open( unsorted_filename )
-#    while True:
-#        offset = unsorted_fh.tell()
-#        line = unsorted_fh.readline()
-#        if not line:
-#            break
-#        if line.startswith( ">" ):
-#            line = line.split( None, 1 )[0][1:]
-#            fasta_offsets[ line ] = offset
-#    unsorted_fh.close()
-#    current_order = map( lambda x: x[1], sorted( map( lambda x: ( x[1], x[0] ), fasta_offsets.items() ) ) )
-#    return ( unsorted_filename, fasta_offsets, current_order )
-#
-#
-#def _write_sorted_fasta( sorted_names, fasta_offsets, sorted_fasta_filename, unsorted_fasta_filename ):
-#    unsorted_fh = open( unsorted_fasta_filename )
-#    sorted_fh = open( sorted_fasta_filename, 'wb+' )
-#    
-#    for name in sorted_names:
-#        offset = fasta_offsets[ name ]
-#        unsorted_fh.seek( offset )
-#        sorted_fh.write( unsorted_fh.readline() )
-#        while True:
-#            line = unsorted_fh.readline()
-#            if not line or line.startswith( ">" ):
-#                break
-#            sorted_fh.write( line )
-#    unsorted_fh.close()
-#    sorted_fh.close()
-#
-#
-#def _sort_fasta_as_is( fasta_filename, params ):
-#    return
-#
-#def _sort_fasta_lexicographical( fasta_filename, params ):
-#    ( unsorted_filename, fasta_offsets, current_order ) = _move_and_index_fasta_for_sorting( fasta_filename )
-#    sorted_names = sorted( fasta_offsets.keys() )
-#    if sorted_names == current_order:
-#        shutil.move( unsorted_filename, fasta_filename )
-#    else:
-#        _write_sorted_fasta( sorted_names, fasta_offsets, fasta_filename, unsorted_filename )    
-#
-#
-#def _sort_fasta_gatk( fasta_filename, params ):
-#    #This method was added by reviewer request.
-#    ( unsorted_filename, fasta_offsets, current_order ) = _move_and_index_fasta_for_sorting( fasta_filename )
-#    sorted_names = map( str, range( 1, 23 ) ) + [ 'X', 'Y' ]
-#    #detect if we have chrN, or just N
-#    has_chr = False
-#    for chrom in sorted_names:
-#        if "chr%s" % chrom in current_order:
-#            has_chr = True
-#            break
-#    
-#    if has_chr:
-#        sorted_names = map( lambda x: "chr%s" % x, sorted_names)
-#        sorted_names.insert( 0, "chrM" )
-#    else:
-#        sorted_names.insert( 0, "MT" )
-#    sorted_names.extend( map( lambda x: "%s_random" % x, sorted_names ) )
-#    
-#    existing_sorted_names = []
-#    for name in sorted_names:
-#        if name in current_order:
-#            existing_sorted_names.append( name )
-#    for name in current_order:
-#        #TODO: confirm that non-canonical names do not need to be sorted specially
-#        if name not in existing_sorted_names:
-#            existing_sorted_names.append( name )
-#    
-#    if existing_sorted_names == current_order:
-#        shutil.move( unsorted_filename, fasta_filename )
-#    else:
-#        _write_sorted_fasta( existing_sorted_names, fasta_offsets, fasta_filename, unsorted_filename )
-#
-#
-#def _sort_fasta_custom( fasta_filename, params ):
-#    ( unsorted_filename, fasta_offsets, current_order ) = _move_and_index_fasta_for_sorting( fasta_filename )
-#    sorted_names = []
-#    for id_repeat in params['param_dict']['sorting']['sequence_identifiers']:
-#        sorted_names.append( id_repeat[ 'identifier' ] )
-#    handle_not_listed = params['param_dict']['sorting']['handle_not_listed_selector']
-#    if handle_not_listed.startswith( 'keep' ):
-#        add_list = []
-#        for name in current_order:
-#            if name not in sorted_names:
-#                add_list.append( name )
-#        if add_list:
-#            if handle_not_listed == 'keep_append':
-#                sorted_names.extend( add_list )
-#            else:
-#                add_list.extend( sorted_names )
-#                sorted_names = add_list
-#    if sorted_names == current_order:
-#        shutil.move( unsorted_filename, fasta_filename )
-#    else:
-#        _write_sorted_fasta( sorted_names, fasta_offsets, fasta_filename, unsorted_filename )
-
-
 def _download_file(start, fh):
     tmp = tempfile.NamedTemporaryFile()
     tmp.write(start)
@@ -246,55 +142,11 @@ def get_stream_reader(fh, tmp_dir):
     return fh
 
 
-#def _get_ucsc_download_address(params, dbkey):
-#    """
-#    Check if we can find the correct file for the supplied dbkey on UCSC's FTP server
-#    """
-#    UCSC_FTP_SERVER = 'hgdownload.cse.ucsc.edu'
-#    UCSC_DOWNLOAD_PATH = '/goldenPath/%s/bigZips/'
-#    COMPRESSED_EXTENSIONS = ['.tar.gz', '.tgz', '.tar.bz2', '.zip', '.fa.gz', '.fa.bz2']
-#
-#    email = params['param_dict']['__user_email__']
-#    if not email:
-#        email = 'anonymous@example.com'
-#
-#    ucsc_dbkey = params['param_dict']['reference_source']['requested_dbkey'] or dbkey
-#    UCSC_CHROM_FA_FILENAMES = ['%s.chromFa' % ucsc_dbkey, 'chromFa', ucsc_dbkey]
-#
-#    ftp = FTP(UCSC_FTP_SERVER)
-#    ftp.login('anonymous', email)
-#
-#    ucsc_path = UCSC_DOWNLOAD_PATH % ucsc_dbkey
-#    path_contents = _get_files_in_ftp_path(ftp, ucsc_path)
-#    ftp.quit()
-#
-#    for ucsc_chrom_fa_filename in UCSC_CHROM_FA_FILENAMES:
-#        for ext in COMPRESSED_EXTENSIONS:
-#            if "%s%s" % (ucsc_chrom_fa_filename, ext) in path_contents:
-#                ucsc_file_name = "%s%s%s" % (ucsc_path, ucsc_chrom_fa_filename, ext)
-#                return "ftp://%s%s" % (UCSC_FTP_SERVER, ucsc_file_name)
-#
-#    raise Exception('Unable to determine filename for UCSC Genome for %s: %s' % (ucsc_dbkey, path_contents))
-#
 
 def add_fasta_to_table(data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params):
     for data_table_name, data_table_entry in _stream_fasta_to_file( fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params ):
         if data_table_entry:
             _add_data_table_entry( data_manager_dict, data_table_entry, data_table_name )
-
-
-#def download_from_ucsc( data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
-#    url = _get_ucsc_download_address(params, dbkey)
-#    fasta_readers = get_stream_reader(urlopen(url), tmp_dir)
-#    add_fasta_to_table(data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params)
-
-
-#def download_from_ncbi( data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
-#    NCBI_DOWNLOAD_URL = 'http://togows.dbcls.jp/entry/ncbi-nucleotide/%s.fasta' #FIXME: taken from dave's genome manager...why some japan site?
-#    requested_identifier = params['param_dict']['reference_source']['requested_identifier']
-#    url = NCBI_DOWNLOAD_URL % requested_identifier
-#    fasta_readers = get_stream_reader(urlopen(url), tmp_dir)
-#    add_fasta_to_table(data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params)
 
 
 def download_from_url( data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
@@ -412,10 +264,7 @@ def _create_symlink( input_filename, target_directory, dbkey, dbkey_name, sequen
     return [  ( DATA_TABLE_NAME, dict( value=sequence_id, dbkey=dbkey, name=sequence_name, path=fasta_base_filename ) ) ]
 
 
-#REFERENCE_SOURCE_TO_DOWNLOAD = dict( ucsc=download_from_ucsc, ncbi=download_from_ncbi, url=download_from_url, history=download_from_history, directory=copy_from_directory )
 REFERENCE_SOURCE_TO_DOWNLOAD = dict( url=download_from_url, history=download_from_history, directory=copy_from_directory )
-
-#SORTING_METHODS = dict( as_is=_sort_fasta_as_is, lexicographical=_sort_fasta_lexicographical, gatk=_sort_fasta_gatk, custom=_sort_fasta_custom )
 
 
 def main():
