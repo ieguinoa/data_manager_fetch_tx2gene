@@ -1,3 +1,0 @@
-#The representative_gff.loc file has this format:
-#
-#<unique_build_id>	<dbkey>	<display_name>	<path_to_gff_file>

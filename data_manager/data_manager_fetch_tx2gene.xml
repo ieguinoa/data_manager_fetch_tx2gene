@@ -1,5 +1,9 @@
-<tool id="data_manager_fetch_gff" name="Create entries in tx2gene data table" version="0.0.1" tool_type="manage_data">
+<tool id="data_manager_fetch_tx2gene" name="Create entries in tx2gene data table" version="0.0.1" tool_type="manage_data">
     <description>fetching</description>
+    <requirements>
+        <requirement type="package" version="1.30.0">bioconductor-genomicfeatures</requirement>
+    </requirements>
+
     <command><![CDATA[
        python "$__tool_directory__"/data_manager_fetch_tx2gene.py "${out_file}"
        --type $file_type
@@ -14,7 +18,8 @@
         <param type="text" name="sequence_id" value="" label="ID for sequence" />
  
         <param name="file_type" type="select" label="Select input type: GFF/GTF file(features will be extracted to create tx2gene table) or transcript to gene table file(tab separated)">
-                <option value="gff_gtf">GFF/GTF file</option>
+                <option value="gtf">GTF file</option>
+                <option value="gff3">GFF3 file</option> 
                 <option value="tx2gene">tx2gene</option>
             </param>
 	<conditional name="reference_source">

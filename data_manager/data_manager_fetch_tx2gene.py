@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#Dan Blankenberg
 
 import sys
 import os
@@ -93,16 +92,32 @@ def _get_stream_readers_for_bz2( fh, tmp_dir ):
     return [ bz2.BZ2File( fh.name, 'rb') ]
 
 
-def convert_tx2gene( fasta_filename, file_type, params ):
-    if file_type is 'tx2gene':
+def convert_to_tx2gene( rscript_gff_to_tx2gene, fasta_filename, file_type, params ):
+    if file_type == 'tx2gene':
         return   #no need to extract tx2gene table
+    #print file_type
     #If the file is actually a GFF/GTF file then extract the tx2gene
     gff_temp_filename = tempfile.NamedTemporaryFile().name
     shutil.move(fasta_filename, gff_temp_filename)
     args= ['Rscript']
-    args.append(RSCRIPT_GFF_TO_TX2GENE)
-    args.append(gff_temp_filename)
-    args.append(fasta_filename)
+    args.append(rscript_gff_to_tx2gene)
+    args.extend(['-x',gff_temp_filename])
+    args.extend(['-o',fasta_filename])
+    args.extend(['-t',file_type])
+    tmp_stderr = tempfile.NamedTemporaryFile( prefix = "tmp-stderr" )
+    return_code = subprocess.call( args=args, shell=False, stderr=tmp_stderr.fileno() ) 
+    #return_code = subprocess.call( args=args, shell=False, stderr=None)
+    if return_code:
+        tmp_stderr.flush()
+        tmp_stderr.seek(0)
+        print >> sys.stderr, "Error in process call"
+        while True:
+            chunk = tmp_stderr.read( CHUNK_SIZE )
+            if not chunk:
+                break
+            sys.stderr.write( chunk )
+        sys.exit( return_code )
+    tmp_stderr.close()
 
     #assert sort_method in SORTING_METHODS, ValueError( "%s is not a valid sorting option." % sort_method )
     #return SORTING_METHODS[ sort_method ]( fasta_filename, params )
@@ -143,29 +158,29 @@ def get_stream_reader(fh, tmp_dir):
 
 
 
-def add_fasta_to_table(data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params):
-    for data_table_name, data_table_entry in _stream_fasta_to_file( fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params ):
+def add_fasta_to_table(rscript_gff_to_tx2gene, data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params):
+    for data_table_name, data_table_entry in _stream_fasta_to_file(rscript_gff_to_tx2gene, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params ):
         if data_table_entry:
             _add_data_table_entry( data_manager_dict, data_table_entry, data_table_name )
 
 
-def download_from_url( data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
+def download_from_url(rscript_gff_to_tx2gene, data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
     urls = filter( bool, map( lambda x: x.strip(), params['param_dict']['reference_source']['user_url'].split( '\n' ) ) )
     fasta_readers = [ get_stream_reader(urlopen( url ), tmp_dir) for url in urls ]
-    add_fasta_to_table(data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id,sequence_name, params)
+    add_fasta_to_table(rscript_gff_to_tx2gene,data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id,sequence_name, params)
 
 
-def download_from_history( data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
+def download_from_history(rscript_gff_to_tx2gene, data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
     #TODO: allow multiple FASTA input files
     input_filename = params['param_dict']['reference_source']['input_fasta']
     if isinstance( input_filename, list ):
         fasta_readers = [ get_stream_reader(open(filename, 'rb'), tmp_dir) for filename in input_filename ]
     else:
         fasta_readers = get_stream_reader(open(input_filename), tmp_dir)
-    add_fasta_to_table(data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params)
+    add_fasta_to_table(rscript_gff_to_tx2gene,data_manager_dict, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params)
 
 
-def copy_from_directory( data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
+def copy_from_directory(rscript_gff_to_tx2gene, data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir ):
     input_filename = params['param_dict']['reference_source']['fasta_filename']
     create_symlink = params['param_dict']['reference_source']['create_symlink'] == 'create_symlink'
     if create_symlink:
@@ -175,7 +190,7 @@ def copy_from_directory( data_manager_dict, params, target_directory, dbkey, dbk
             fasta_readers = [ get_stream_reader(open(filename, 'rb'), tmp_dir) for filename in input_filename ]
         else:
             fasta_readers = get_stream_reader(open(input_filename), tmp_dir)
-        data_table_entries = _stream_fasta_to_file( fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params )
+        data_table_entries = _stream_fasta_to_file(rscript_gff_to_tx2gene, fasta_readers, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params )
     for data_table_name, data_table_entry in data_table_entries:
         if data_table_entry:
             _add_data_table_entry( data_manager_dict, data_table_entry, data_table_name )
@@ -188,7 +203,7 @@ def _add_data_table_entry( data_manager_dict, data_table_entry, data_table_name 
     return data_manager_dict
 
 
-def _stream_fasta_to_file( fasta_stream, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params, close_stream=True ):
+def _stream_fasta_to_file( rscript_gff_to_tx2gene, fasta_stream, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, params, close_stream=True ):
     fasta_base_filename = "%s_tx2gene.tab" % sequence_id
     fasta_filename = os.path.join( target_directory, fasta_base_filename )
     with open( fasta_filename, 'wb+' ) as fasta_writer:
@@ -220,7 +235,7 @@ def _stream_fasta_to_file( fasta_stream, target_directory, dbkey, dbkey_name, se
             if close_stream:
                 fasta_stream.close()
 
-    convert_to_tx2gene( fasta_filename, params['param_dict']['file_type'], params )
+    convert_to_tx2gene( rscript_gff_to_tx2gene,fasta_filename, params['param_dict']['file_type'], params )
     return [ ( DATA_TABLE_NAME, dict( value=sequence_id, dbkey=dbkey, name=sequence_name, path=fasta_base_filename ) ) ]
 
 
@@ -271,17 +286,17 @@ def main():
     #Parse Command Line
     parser = optparse.OptionParser()
     parser.add_option( '-d', '--dbkey_description', dest='dbkey_description', action='store', type="string", default=None, help='dbkey_description' )
+    parser.add_option( '-b', '--base_dir', dest='base_dir', action='store', type='string', default=None, help='base_dir')
     parser.add_option( '-t', '--type', dest='file_type', action='store', type='string', default=None, help='file_type')
     (options, args) = parser.parse_args()
     
     filename = args[0]
     #global DATA_TABLE_NAME
-    global RSCRIPT_GFF_TO_TX2GENE= os.path.join( options.base_dir, 'tximport.r')
+    rscript_gff_to_tx2gene=os.path.join( options.base_dir, 'tximport.r')
 
-
-    if options.file_type == 'gff_gtf':
-        #DATA_TABLE_NAME= 'representative_gff'
-    else:   #file_type='tx2gene'
+    #input_type='gff_gtf'
+    #if options.file_type != 'gff_gtf':
+    # 	file_type='tx2gene'
         
     params = loads( open( filename ).read() )
     target_directory = params[ 'output_data' ][0]['extra_files_path']
@@ -297,7 +312,7 @@ def main():
     tmp_dir = tempfile.mkdtemp()
     #Fetch the input file
     try:
-        REFERENCE_SOURCE_TO_DOWNLOAD[ params['param_dict']['reference_source']['reference_source_selector'] ]( data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir)
+        REFERENCE_SOURCE_TO_DOWNLOAD[ params['param_dict']['reference_source']['reference_source_selector'] ]( rscript_gff_to_tx2gene, data_manager_dict, params, target_directory, dbkey, dbkey_name, sequence_id, sequence_name, tmp_dir)
     finally:
         cleanup_before_exit(tmp_dir)
     #save info to json file
