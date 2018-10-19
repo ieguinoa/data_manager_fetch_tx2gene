@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#Dan Blankenberg
 
 import sys
 import os
@@ -10,6 +11,7 @@ import tarfile
 import zipfile
 import gzip
 import bz2
+import subprocess
 try:
     # For Python 3.0 and later
     from urllib.request import urlopen
@@ -105,7 +107,7 @@ def convert_to_tx2gene( rscript_gff_to_tx2gene, fasta_filename, file_type, param
     args.extend(['-o',fasta_filename])
     args.extend(['-t',file_type])
     tmp_stderr = tempfile.NamedTemporaryFile( prefix = "tmp-stderr" )
-    return_code = subprocess.call( args=args, shell=False, stderr=tmp_stderr.fileno() ) 
+    return_code = subprocess.call( args=args, shell=False, stderr=tmp_stderr.fileno() )
     #return_code = subprocess.call( args=args, shell=False, stderr=None)
     if return_code:
         tmp_stderr.flush()
@@ -119,9 +121,8 @@ def convert_to_tx2gene( rscript_gff_to_tx2gene, fasta_filename, file_type, param
         sys.exit( return_code )
     tmp_stderr.close()
 
-    #assert sort_method in SORTING_METHODS, ValueError( "%s is not a valid sorting option." % sort_method )
-    #return SORTING_METHODS[ sort_method ]( fasta_filename, params )
-    
+
+
 def _download_file(start, fh):
     tmp = tempfile.NamedTemporaryFile()
     tmp.write(start)
@@ -292,7 +293,7 @@ def main():
     
     filename = args[0]
     #global DATA_TABLE_NAME
-    rscript_gff_to_tx2gene=os.path.join( options.base_dir, 'tximport.r')
+    rscript_gff_to_tx2gene=os.path.join( options.base_dir, 'get_tx2gene_table.R')
 
     #input_type='gff_gtf'
     #if options.file_type != 'gff_gtf':

@@ -1,3 +1,3 @@
 #The tx2gene.loc file has this format:
 #
-#<unique_build_id>	<dbkey>	<display_name>	<path_to_gff_file>
+#<unique_build_id>	<dbkey>	<display_name>	<path_to_tx2gene_file>

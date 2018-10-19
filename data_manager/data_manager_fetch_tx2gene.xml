@@ -1,7 +1,8 @@
 <tool id="data_manager_fetch_tx2gene" name="Create entries in tx2gene data table" version="0.0.1" tool_type="manage_data">
     <description>fetching</description>
     <requirements>
-        <requirement type="package" version="1.30.0">bioconductor-genomicfeatures</requirement>
+        <requirement type="package" version="1.26.4">bioconductor-genomicfeatures</requirement>
+        <requirement type="package">r-getopt</requirement>
     </requirements>
 
     <command><![CDATA[
@@ -19,9 +20,9 @@
  
         <param name="file_type" type="select" label="Select input type: GFF/GTF file(features will be extracted to create tx2gene table) or transcript to gene table file(tab separated)">
                 <option value="gtf">GTF file</option>
-                <option value="gff3">GFF3 file</option> 
+                <option value="gff3">GFF3 file</option>
                 <option value="tx2gene">tx2gene</option>
-            </param>
+        </param>
 	<conditional name="reference_source">
 	    <param name="reference_source_selector" type="select" label="Choose the source for the reference genome">
 		<option value="url">URL</option>
