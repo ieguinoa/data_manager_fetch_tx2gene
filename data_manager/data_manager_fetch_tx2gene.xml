@@ -18,7 +18,7 @@
         <param type="text" name="sequence_name" value="" label="Name of sequence" />
         <param type="text" name="sequence_id" value="" label="ID for sequence" />
  
-        <param name="file_type" type="select" label="Select input type: GFF/GTF file(features will be extracted to create tx2gene table) or transcript to gene table file(tab separated)">
+        <param name="file_type" type="select" label="Select input type: GFF/GTF file(features will be extracted to create tx2gene table) or transcript to gene table file(tab separated)" help="When using GFF3/GTF files as input, transcript feaatures must contain a transcript_id attribute.">
                 <option value="gtf">GTF file</option>
                 <option value="gff3">GFF3 file</option>
                 <option value="tx2gene">tx2gene</option>
@@ -60,7 +60,7 @@
     <help>
 **What it does**
 
-Fetches a gff file from various sources (URL, Galaxy History, or a server directory) and populates the "all_gff" data table.
+Populate the tx2gene data table with transcript-genes mapping tables.
 
 ------
 
