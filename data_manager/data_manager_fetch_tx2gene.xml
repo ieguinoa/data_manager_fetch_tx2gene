@@ -1,7 +1,7 @@
 <tool id="data_manager_fetch_tx2gene" name="Create entries in tx2gene data table" version="0.0.1" tool_type="manage_data">
     <description>fetching</description>
     <requirements>
-        <requirement type="package" version="1.26.4">bioconductor-genomicfeatures</requirement>
+        <requirement type="package" version="1.32.3">bioconductor-genomicfeatures</requirement>
         <requirement type="package">r-getopt</requirement>
     </requirements>
 
