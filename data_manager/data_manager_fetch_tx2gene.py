@@ -27,7 +27,7 @@ from json import loads, dumps
 
 CHUNK_SIZE = 2**20  # 1mb
 
-DATA_TABLE_NAME = 'tx2gene'
+DATA_TABLE_NAME = 'tx2gene_table'
 
 def cleanup_before_exit( tmp_dir ):
     if tmp_dir and os.path.exists( tmp_dir ):
@@ -45,14 +45,14 @@ def get_dbkey_dbname_id_name( params, dbkey_description=None ):
     sequence_id = params['param_dict']['sequence_id']
     if not sequence_id:
         sequence_id = dbkey #uuid.uuid4() generate and use an uuid instead?
-    
+
 #    if params['param_dict']['dbkey_source']['dbkey_source_selector'] == 'new':
 #        dbkey_name = params['param_dict']['dbkey_source']['dbkey_name']
 #        if not dbkey_name:
 #            dbkey_name = dbkey
 #    else:
 #        dbkey_name = None
-    dbkey = params['param_dict']['dbkey'] 
+    dbkey = params['param_dict']['dbkey']
     dbkey_name = dbkey_description
     sequence_name = params['param_dict']['sequence_name']
     if not sequence_name:
@@ -290,7 +290,6 @@ def main():
     parser.add_option( '-b', '--base_dir', dest='base_dir', action='store', type='string', default=None, help='base_dir')
     parser.add_option( '-t', '--type', dest='file_type', action='store', type='string', default=None, help='file_type')
     (options, args) = parser.parse_args()
-    
     filename = args[0]
     #global DATA_TABLE_NAME
     rscript_gff_to_tx2gene=os.path.join( options.base_dir, 'get_tx2gene_table.R')
@@ -298,14 +297,14 @@ def main():
     #input_type='gff_gtf'
     #if options.file_type != 'gff_gtf':
     # 	file_type='tx2gene'
-        
+
     params = loads( open( filename ).read() )
     target_directory = params[ 'output_data' ][0]['extra_files_path']
     os.mkdir( target_directory )
     data_manager_dict = {}
-    
+
     dbkey, dbkey_name, sequence_id, sequence_name = get_dbkey_dbname_id_name( params, dbkey_description=options.dbkey_description ) 
-    
+
     if dbkey in [ None, '', '?' ]:
         raise Exception( '"%s" is not a valid dbkey. You must specify a valid dbkey.' % ( dbkey ) )
 
@@ -318,6 +317,6 @@ def main():
         cleanup_before_exit(tmp_dir)
     #save info to json file
     open( filename, 'wb' ).write( dumps( data_manager_dict ).encode() )
-        
+
 if __name__ == "__main__":
     main()
